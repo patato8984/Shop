@@ -3,6 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"github.com/patato8984/Shop/internal/modules/catalog/usescase"
 )
@@ -23,4 +25,21 @@ func (h CatalogHandler) GetAllProduct(w http.ResponseWriter, r http.Request) {
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(allproduct)
+}
+func (h CatalogHandler) GetProduct(w http.ResponseWriter, r http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/books/author/")
+	id, err := strconv.Atoi(idStr)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Message": "Incorrect URL"})
+		return
+	}
+	product, error := h.service.GetProduct(id)
+	if error != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"Message": "invalid id"})
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(product)
 }

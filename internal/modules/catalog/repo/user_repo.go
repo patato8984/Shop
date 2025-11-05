@@ -3,7 +3,7 @@ package repo
 import (
 	"database/sql"
 
-	modelscatalog "github.com/patato8984/Shop/internal/modules/catalog/model"
+	"github.com/patato8984/Shop/internal/modules/catalog/model"
 )
 
 type CatalogRepo struct {
@@ -13,19 +13,40 @@ type CatalogRepo struct {
 func NewCatalogRepo(db *sql.DB) *CatalogRepo {
 	return &CatalogRepo{db: db}
 }
-func (r CatalogRepo) GetAll() ([]modelscatalog.Product, error) {
-	rows, err := r.db.Query("SELECT id, name, stock, price FROM products WHERE stock > 0")
+func (r CatalogRepo) GetAll() ([]model.Product, error) {
+	rows, err := r.db.Query("SELECT id, name FROM products")
 	if err != nil {
-		return []modelscatalog.Product{}, err
+		return []model.Product{}, err
 	}
-	var products []modelscatalog.Product
+	var products []model.Product
 	defer rows.Close()
 	for rows.Next() {
-		var product modelscatalog.Product
-		if err := rows.Scan(&product.Id, &product.Name, &product.Price, &product.Price); err != nil {
+		var product model.Product
+		if err := rows.Scan(&product.Id, &product.Name); err != nil {
 			return products, err
 		}
 		products = append(products, product)
 	}
 	return products, err
+}
+func (r CatalogRepo) GetProduct(id int) (model.Product, error) {
+	rows, err := r.db.Query("SELECT DISTINCT p.id, p.name, s.products_id AS products_id, s.storage AS storage, s.colour AS colour, s.price AS price, s.stock AS stock FROM product p JOIN skus s ON p.id = s.products_id WHERE p.id = $1", id)
+	var product model.Product
+	if err != nil {
+		return product, err
+	}
+	defer rows.Close()
+	product.SKUs = []model.SKU{}
+	for rows.Next() {
+		var sku model.SKU
+		var productID int
+		var productName string
+		if err := rows.Scan(&productID, &productName, &sku.Id, &sku.Storage, &sku.Colour, &sku.Price, &sku.Stock); err != nil {
+			return product, err
+		}
+		product.Id = productID
+		product.Name = productName
+		product.SKUs = append(product.SKUs, sku)
+	}
+	return product, nil
 }

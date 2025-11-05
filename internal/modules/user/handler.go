@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/patato8984/Shop/internal/modules/user/models"
+	"github.com/patato8984/Shop/internal/modules/user/model"
 )
 
 type UserHandler struct {
@@ -16,7 +16,7 @@ func NewUserHandler(service *UserService) *UserHandler {
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var user models.User
+	var user model.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)

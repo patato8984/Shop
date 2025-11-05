@@ -3,7 +3,7 @@ package user
 import (
 	"errors"
 
-	"github.com/patato8984/Shop/internal/modules/user/models"
+	"github.com/patato8984/Shop/internal/modules/user/model"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -15,7 +15,7 @@ func NewUserService(repo *UserRepo) *UserService {
 	return &UserService{repo: repo}
 }
 
-func (s *UserService) RegisterCase(user models.User) error {
+func (s *UserService) RegisterCase(user model.User) error {
 	if len(user.Password) < 12 || user.Nickname == "" {
 		return errors.New("short password or nickname")
 	}

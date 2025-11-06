@@ -30,7 +30,7 @@ func (r CatalogRepo) GetAll() ([]model.Product, error) {
 	return products, err
 }
 func (r CatalogRepo) GetProduct(id int) (model.Product, error) {
-	rows, err := r.db.Query("SELECT DISTINCT p.id, p.name, s.products_id AS products_id, s.storage AS storage, s.colour AS colour, s.price AS price, s.stock AS stock FROM product p JOIN skus s ON p.id = s.products_id WHERE p.id = $1", id)
+	rows, err := r.db.Query("SELECT p.id, p.name, s.id AS id, s.products_id, s.storage, s.colour, s.price, s.stock FROM products p JOIN skus s ON p.id = s.products_id WHERE p.id = $1", id)
 	var product model.Product
 	if err != nil {
 		return product, err

@@ -19,7 +19,10 @@ func (s *UserService) RegisterCase(user model.User) error {
 	if len(user.Password) < 12 || user.Nickname == "" {
 		return errors.New("short password or nickname")
 	}
-	// add a check if the user is busy
+	ok, _ := s.repo.SearchNickname(user.Nickname)
+	if !ok {
+		return errors.New("nickname busy")
+	}
 	heshPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	// to add a mailing list for mail, use Kafka
 	if err != nil {

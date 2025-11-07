@@ -2,6 +2,9 @@ package repo
 
 import (
 	"database/sql"
+	"errors"
+
+	"github.com/patato8984/Shop/internal/modules/catalog/model"
 )
 
 type CatalogAdminRepo struct {
@@ -17,4 +20,21 @@ func (r CatalogAdminRepo) CreateOrSearchProduct(product string) (int, error) {
 		return 0, err
 	}
 	return id, nil
+}
+func (r CatalogAdminRepo) CreateSkus(id int, sku model.SKU) (model.Product, error) {
+	var product model.Product
+	var createdSku model.SKU
+	var sku_id int
+	if err := r.db.QueryRow("INSERT INTO skus (products_id, storage, colour, price) VALUES ($1, $2, $3, $4) RETURNING id", id, sku.Storage, sku.Colour, sku.Price).Scan(&sku_id); err != nil {
+		return product, errors.New("product not found")
+	}
+
+	if err := r.db.QueryRow("SELECT p.id, p.name, s.id AS sku_id, s.products_id, s.storage, s.colour, s.price, s.stock FROM products p JOIN skus s ON s.products_id = p.id WHERE p.id = $1 AND s.id = $2", id, sku_id).Scan(
+		&product.Id, &product.Name, &createdSku.Id,
+		&createdSku.Product_id, &createdSku.Storage, &createdSku.Colour,
+		&createdSku.Price, &createdSku.Stock); err != nil {
+		return product, err
+	}
+	product.SKUs = append(product.SKUs, createdSku)
+	return product, nil
 }

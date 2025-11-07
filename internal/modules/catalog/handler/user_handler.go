@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/patato8984/Shop/internal/modules/catalog/usescase"
+	"github.com/patato8984/Shop/internal/shared/dto"
 )
 
 type CatalogHandler struct {
@@ -21,27 +22,27 @@ func (h CatalogHandler) GetAllProduct(w http.ResponseWriter, r http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"message": "error server"})
+		json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(allproduct)
 }
 func (h CatalogHandler) GetProduct(w http.ResponseWriter, r http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/books/author/")
+	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/")
 	id, err := strconv.Atoi(idStr)
 	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Incorrect URL"})
+		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
 		return
 	}
 	product, erro := h.service.GetProduct(id)
 	if erro != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"message": "invalid id"})
+		json.NewEncoder(w).Encode(dto.Response("invalid id", http.StatusBadRequest, nil))
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(product)
+	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, product))
 }

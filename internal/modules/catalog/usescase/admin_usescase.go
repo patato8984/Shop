@@ -28,3 +28,6 @@ func (s CatalogAdminServise) CreateNewProduct(nameProduct string) (model.Product
 	product.Name = nameProduct
 	return product, nil
 }
+func (s CatalogAdminServise) CreateNewSkus(id int, sku model.SKU) (model.Product, error) {
+	return s.repo.CreateSkus(id, sku)
+}

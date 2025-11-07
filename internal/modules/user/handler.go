@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/patato8984/Shop/internal/modules/user/model"
+	"github.com/patato8984/Shop/internal/shared/dto"
 )
 
 type UserHandler struct {
@@ -29,10 +30,13 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		switch err.Error() {
 		case "short password or Nickname":
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(map[string]string{"message": err.Error()})
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
+		case "nickname busy":
+			w.WriteHeader(http.StatusConflict)
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusConflict, nil))
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"message": "error server"})
+			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
 		}
 		return
 	}

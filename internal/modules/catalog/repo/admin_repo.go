@@ -3,6 +3,7 @@ package repo
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/patato8984/Shop/internal/modules/catalog/model"
 )
@@ -17,7 +18,7 @@ func NewCatalogAdminRepo(db *sql.DB) *CatalogAdminRepo {
 func (r CatalogAdminRepo) CreateOrSearchProduct(product string) (int, error) {
 	var id int
 	if err := r.db.QueryRow("INSERT INTO products (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id", product).Scan(&id); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("db error: %w", err)
 	}
 	return id, nil
 }
@@ -25,10 +26,13 @@ func (r CatalogAdminRepo) CreateSkus(id int, sku model.SKU) (model.Product, erro
 	var product model.Product
 	var createdSku model.SKU
 	var sku_id int
-	if err := r.db.QueryRow("INSERT INTO skus (products_id, storage, colour, price) VALUES ($1, $2, $3, $4) RETURNING id", id, sku.Storage, sku.Colour, sku.Price).Scan(&sku_id); err != nil {
-		return product, errors.New("product not found")
+	err := r.db.QueryRow("INSERT INTO skus (products_id, storage, colour, price) VALUES ($1, $2, $3, $4) RETURNING id", id, sku.Storage, sku.Colour, sku.Price).Scan(&sku_id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return product, errors.New("product not found")
+		}
+		return product, fmt.Errorf("db error: %w", err)
 	}
-
 	if err := r.db.QueryRow("SELECT p.id, p.name, s.id AS sku_id, s.products_id, s.storage, s.colour, s.price, s.stock FROM products p JOIN skus s ON s.products_id = p.id WHERE p.id = $1 AND s.id = $2", id, sku_id).Scan(
 		&product.Id, &product.Name, &createdSku.Id,
 		&createdSku.Product_id, &createdSku.Storage, &createdSku.Colour,
@@ -37,4 +41,16 @@ func (r CatalogAdminRepo) CreateSkus(id int, sku model.SKU) (model.Product, erro
 	}
 	product.SKUs = append(product.SKUs, createdSku)
 	return product, nil
+}
+func (r CatalogAdminRepo) AddStock(stock, id int) (model.SKU, error) {
+	var sku model.SKU
+	err := r.db.QueryRow("UPDATE skus SET stock = stock + $1 WHERE id = $2 RETURNING products_id, price, stock", stock, id).Scan(&sku.Product_id, &sku.Price, &sku.Stock)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return sku, errors.New("sku not found")
+		}
+		return sku, fmt.Errorf("db error: %w", err)
+	}
+	sku.Id = id
+	return sku, nil
 }

@@ -4,4 +4,4 @@ CREATE TABLE user(
     nickName VARCHAR(255) NOTNULL,
     mail VARCHAR(255) NOTNULL,
     password VARCHAR(255) NOTNULL
-)
+);

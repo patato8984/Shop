@@ -1,8 +1,15 @@
 package model
 
 type User = struct {
-	Name     string `json:"name"`
-	Nickname string `json:"nickname"`
-	Mail     string `json:"gmail"`
-	Password string `json:"password"`
+	Id       int    `json:"id,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Nickname string `json:"nickname,omitempty"`
+	Mail     string `json:"gmail,omitempty"`
+	Password string `json:"password,omitempty"`
+	Token    string `json:"token,omitempty"`
+}
+
+type HashPasswordAndId = struct {
+	Id           int
+	HeshPassword string
 }

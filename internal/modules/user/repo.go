@@ -2,8 +2,11 @@ package user
 
 import (
 	"database/sql"
+	"errors"
+	"fmt"
 
 	_ "github.com/lib/pq"
+	"github.com/patato8984/Shop/internal/modules/user/model"
 )
 
 type UserRepo struct {
@@ -27,4 +30,14 @@ func (r *UserRepo) RegisterRepo(mail, name, nickname, hashPassword string) error
 		return err
 	}
 	return nil
+}
+func (r *UserRepo) GetHashPasswordFromNickname(nickname string) (model.HashPasswordAndId, error) {
+	var user model.HashPasswordAndId
+	if err := r.db.QueryRow("SELECT id, password FROM user WHERE nickName = $1", nickname).Scan(&user.Id, &user.HeshPassword); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return user, errors.New("user not found")
+		}
+		return user, fmt.Errorf("db error: %w", err)
+	}
+	return user, nil
 }

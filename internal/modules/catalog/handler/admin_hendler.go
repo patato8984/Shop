@@ -54,8 +54,8 @@ func (h CatalogAdminHandler) CreateNewSkus(w http.ResponseWriter, r http.Request
 	if errors != nil {
 		switch errors.Error() {
 		case "product not found":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(dto.Response(errors.Error(), http.StatusBadRequest, nil))
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(dto.Response(errors.Error(), http.StatusNotFound, nil))
 			return
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
@@ -65,4 +65,34 @@ func (h CatalogAdminHandler) CreateNewSkus(w http.ResponseWriter, r http.Request
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, data))
+}
+func (h CatalogAdminHandler) AddStockToSkus(w http.ResponseWriter, r http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/skus/")
+	id, err := strconv.Atoi(idStr)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		return
+	}
+	var stock int
+	if err := json.NewDecoder(r.Body).Decode(&stock); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(dto.Response("error json", http.StatusBadRequest, nil))
+		return
+	}
+	sku, err := h.service.AddStockToSkus(stock, id)
+	if err != nil {
+		switch err.Error() {
+		case "sku not found":
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusNotFound, nil))
+			return
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, sku))
 }

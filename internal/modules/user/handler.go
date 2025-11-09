@@ -43,3 +43,25 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
+func (h *UserHandler) Authentication(w http.ResponseWriter, r http.Request) {
+	var passwordAndName model.User
+	if err := json.NewDecoder(r.Body).Decode(&passwordAndName); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(dto.Response("error json", http.StatusBadRequest, nil))
+		return
+	}
+	user, err := h.service.GetToken(passwordAndName.Nickname, passwordAndName.Password)
+	if err != nil {
+		switch err.Error() {
+		case "user not found":
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusNotFound, nil))
+			return
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(dto.Response("seccus", http.StatusOK, user))
+}

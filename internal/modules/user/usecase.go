@@ -2,7 +2,9 @@ package user
 
 import (
 	"errors"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/patato8984/Shop/internal/modules/user/model"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -32,4 +34,23 @@ func (s *UserService) RegisterCase(user model.User) error {
 		return err
 	}
 	return nil
+}
+func (s *UserService) GetToken(nickName, password string) (model.User, error) {
+	var user model.User
+	idAndHesh, err := s.repo.GetHashPasswordFromNickname(nickName)
+	if err != nil {
+		return user, err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(idAndHesh.HeshPassword), []byte(password)); err != nil {
+		return user, err
+	}
+	clearToken := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{"sub": nickName, "exp": time.Now().Add(time.Hour * 144).Unix()})
+	token, err := clearToken.SignedString([]byte("каки"))
+	if err != nil {
+		return user, err
+	}
+	user.Nickname = nickName
+	user.Id = idAndHesh.Id
+	user.Token = token
+	return user, nil
 }

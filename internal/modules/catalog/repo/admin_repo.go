@@ -22,6 +22,18 @@ func (r CatalogAdminRepo) CreateOrSearchProduct(product string) (int, error) {
 	}
 	return id, nil
 }
+func (r CatalogAdminRepo) DelProduct(id int) (int, error) {
+	var deletedID int
+	err := r.db.QueryRow("DELETE FROM products WHERE id = $1 RETURNING id", id).Scan(&deletedID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("product not found")
+		}
+		return 0, fmt.Errorf("db error: %w", err)
+	}
+	return deletedID, nil
+}
+
 func (r CatalogAdminRepo) CreateSkus(id int, sku model.SKU) (model.Product, error) {
 	var product model.Product
 	var createdSku model.SKU
@@ -47,10 +59,21 @@ func (r CatalogAdminRepo) AddStock(stock, id int) (model.SKU, error) {
 	err := r.db.QueryRow("UPDATE skus SET stock = stock + $1 WHERE id = $2 RETURNING products_id, price, stock", stock, id).Scan(&sku.Product_id, &sku.Price, &sku.Stock)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return sku, errors.New("sku not found")
+			return sku, errors.New("skus not found")
 		}
 		return sku, fmt.Errorf("db error: %w", err)
 	}
 	sku.Id = id
 	return sku, nil
+}
+func (r CatalogAdminRepo) DelSkus(id int) (int, error) {
+	var deletedID int
+	err := r.db.QueryRow("DELETE FROM skus WHERE id = $1 RETURNING id", id).Scan(&deletedID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("skus not found")
+		}
+		return 0, fmt.Errorf("db error: %w", err)
+	}
+	return deletedID, nil
 }

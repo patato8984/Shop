@@ -35,6 +35,31 @@ func (h CatalogAdminHandler) CreateNewProduct(w http.ResponseWriter, r http.Requ
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, product))
 }
+func (h CatalogAdminHandler) DelProduct(w http.ResponseWriter, r http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/")
+	id, err := strconv.Atoi(idStr)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		return
+	}
+	deletedID, err := h.service.DelProduct(id)
+	if err != nil {
+		switch err.Error() {
+		case "product not found":
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
+			return
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(dto.Response("server error", http.StatusInternalServerError, nil))
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(dto.Response("succes delete", http.StatusOK, deletedID))
+}
+
 func (h CatalogAdminHandler) CreateNewSkus(w http.ResponseWriter, r http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/")
 	id, err := strconv.Atoi(idStr)
@@ -57,6 +82,10 @@ func (h CatalogAdminHandler) CreateNewSkus(w http.ResponseWriter, r http.Request
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(dto.Response(errors.Error(), http.StatusNotFound, nil))
 			return
+		case "short id":
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(dto.Response(errors.Error(), http.StatusNotFound, nil))
+			return
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
@@ -66,6 +95,7 @@ func (h CatalogAdminHandler) CreateNewSkus(w http.ResponseWriter, r http.Request
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, data))
 }
+
 func (h CatalogAdminHandler) AddStockToSkus(w http.ResponseWriter, r http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/skus/")
 	id, err := strconv.Atoi(idStr)
@@ -88,6 +118,10 @@ func (h CatalogAdminHandler) AddStockToSkus(w http.ResponseWriter, r http.Reques
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusNotFound, nil))
 			return
+		case "short id":
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusNotFound, nil))
+			return
 		default:
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
@@ -95,4 +129,28 @@ func (h CatalogAdminHandler) AddStockToSkus(w http.ResponseWriter, r http.Reques
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, sku))
+}
+func (h CatalogAdminHandler) DelSkus(w http.ResponseWriter, r http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/skus/")
+	id, err := strconv.Atoi(idStr)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		return
+	}
+	deletedID, err := h.service.DelSkus(id)
+	if err != nil {
+		switch err.Error() {
+		case "product not found":
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
+			return
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(dto.Response("server error", http.StatusInternalServerError, nil))
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(dto.Response("succes delete", http.StatusOK, deletedID))
 }

@@ -1,27 +1,28 @@
-package user
+package handler_user
 
 import (
 	"encoding/json"
 	"net/http"
 
 	"github.com/patato8984/Shop/internal/modules/user/model"
+	usescase_user "github.com/patato8984/Shop/internal/modules/user/usescase"
 	"github.com/patato8984/Shop/internal/shared/dto"
 )
 
 type UserHandler struct {
-	service *UserService
+	service *usescase_user.UserService
 }
 
-func NewUserHandler(service *UserService) *UserHandler {
+func NewUserHandler(service *usescase_user.UserService) *UserHandler {
 	return &UserHandler{service: service}
 }
 
-func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
+func (h *UserHandler) RegisterUser(w http.ResponseWriter, r *http.Request) {
 	var user model.User
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"message": "invalid json"})
+		json.NewEncoder(w).Encode(dto.Response("error json", http.StatusBadRequest, nil))
 		return
 	}
 	err := h.service.RegisterCase(user)
@@ -45,6 +46,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 func (h *UserHandler) Authentication(w http.ResponseWriter, r http.Request) {
 	var passwordAndName model.User
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewDecoder(r.Body).Decode(&passwordAndName); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(dto.Response("error json", http.StatusBadRequest, nil))

@@ -7,9 +7,11 @@ type User = struct {
 	Mail     string `json:"gmail,omitempty"`
 	Password string `json:"password,omitempty"`
 	Token    string `json:"token,omitempty"`
+	Role     string `json:"role,omitempty"`
 }
 
-type HashPasswordAndId = struct {
+type ResponseAuthentication = struct {
 	Id           int
 	HeshPassword string
+	Role         string
 }

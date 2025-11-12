@@ -1,4 +1,4 @@
-package user
+package usescase_user
 
 import (
 	"errors"
@@ -6,14 +6,15 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/patato8984/Shop/internal/modules/user/model"
+	repo_user "github.com/patato8984/Shop/internal/modules/user/repo"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
-	repo *UserRepo
+	repo *repo_user.UserRepo
 }
 
-func NewUserService(repo *UserRepo) *UserService {
+func NewUserService(repo *repo_user.UserRepo) *UserService {
 	return &UserService{repo: repo}
 }
 
@@ -35,22 +36,23 @@ func (s *UserService) RegisterCase(user model.User) error {
 	}
 	return nil
 }
+
 func (s *UserService) GetToken(nickName, password string) (model.User, error) {
 	var user model.User
-	idAndHesh, err := s.repo.GetHashPasswordFromNickname(nickName)
+	users, err := s.repo.GetHashPasswordFromNickname(nickName)
 	if err != nil {
 		return user, err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(idAndHesh.HeshPassword), []byte(password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(users.HeshPassword), []byte(password)); err != nil {
 		return user, err
 	}
-	clearToken := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{"sub": nickName, "exp": time.Now().Add(time.Hour * 144).Unix()})
+	clearToken := jwt.NewWithClaims(jwt.SigningMethodHS512, jwt.MapClaims{"user_id": users.Id, "role": users.Role, "exp": time.Now().Add(time.Hour * 24).Unix()})
 	token, err := clearToken.SignedString([]byte("каки"))
 	if err != nil {
 		return user, err
 	}
 	user.Nickname = nickName
-	user.Id = idAndHesh.Id
+	user.Id = users.Id
 	user.Token = token
 	return user, nil
 }

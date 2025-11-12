@@ -1,4 +1,4 @@
-package user
+package repo_user
 
 import (
 	"database/sql"
@@ -25,15 +25,15 @@ func (r *UserRepo) SearchNickname(nickname string) (bool, error) {
 	return ok, nil
 }
 func (r *UserRepo) RegisterRepo(mail, name, nickname, hashPassword string) error {
-	_, err := r.db.Exec("INSERT INTO user (user_mail,user_name, user_nickName, user_password) VALUES ($1, $2, $3, $4)", mail, name, nickname, hashPassword)
+	_, err := r.db.Exec("INSERT INTO user (user_mail,user_name, user_nickName, user_password, role) VALUES ($1, $2, $3, $4, %5)", mail, name, nickname, hashPassword, "user")
 	if err != nil {
 		return err
 	}
 	return nil
 }
-func (r *UserRepo) GetHashPasswordFromNickname(nickname string) (model.HashPasswordAndId, error) {
-	var user model.HashPasswordAndId
-	if err := r.db.QueryRow("SELECT id, password FROM user WHERE nickName = $1", nickname).Scan(&user.Id, &user.HeshPassword); err != nil {
+func (r *UserRepo) GetHashPasswordFromNickname(nickname string) (model.ResponseAuthentication, error) {
+	var user model.ResponseAuthentication
+	if err := r.db.QueryRow("SELECT id, password, role FROM user WHERE nickName = $1", nickname).Scan(&user.Id, &user.HeshPassword, &user.Role); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return user, errors.New("user not found")
 		}

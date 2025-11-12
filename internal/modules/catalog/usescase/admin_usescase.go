@@ -28,9 +28,30 @@ func (s CatalogAdminServise) CreateNewProduct(nameProduct string) (model.Product
 	product.Name = nameProduct
 	return product, nil
 }
+func (s CatalogAdminServise) DelProduct(id int) (int, error) {
+	if id <= 0 {
+		return 0, errors.New("short id")
+	}
+	return s.repo.DelProduct(id)
+}
 func (s CatalogAdminServise) CreateNewSkus(id int, sku model.SKU) (model.Product, error) {
+	if id <= 0 {
+		var model model.Product
+		return model, errors.New("short id")
+	}
 	return s.repo.CreateSkus(id, sku)
 }
 func (s CatalogAdminServise) AddStockToSkus(stock, id int) (model.SKU, error) {
+	if id <= 0 {
+		var model model.SKU
+		return model, errors.New("short id")
+	}
 	return s.repo.AddStock(stock, id)
+}
+
+func (s CatalogAdminServise) DelSkus(id int) (int, error) {
+	if id <= 0 {
+		return 0, errors.New("short id")
+	}
+	return s.repo.DelSkus(id)
 }

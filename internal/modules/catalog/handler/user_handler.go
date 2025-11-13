@@ -28,7 +28,36 @@ func (h CatalogHandler) GetAllProduct(w http.ResponseWriter, r http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(allproduct)
 }
-func (h CatalogHandler) GetProduct(w http.ResponseWriter, r http.Request) {
+func (h CatalogHandler) GetSkus(w http.ResponseWriter, r http.Request) {
+	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/skus/")
+	id, err := strconv.Atoi(idStr)
+	w.Header().Set("Content-Type", "application/json")
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		return
+	}
+	skus, err := h.service.GetSkus(id)
+	if err != nil {
+		switch err.Error() {
+		case "skus not fund":
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
+			return
+		case "short id":
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
+			return
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusBadRequest, nil))
+			return
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, skus))
+}
+func (h CatalogHandler) GetAllSkus(w http.ResponseWriter, r http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/")
 	id, err := strconv.Atoi(idStr)
 	w.Header().Set("Content-Type", "application/json")
@@ -37,11 +66,18 @@ func (h CatalogHandler) GetProduct(w http.ResponseWriter, r http.Request) {
 		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
 		return
 	}
-	product, erro := h.service.GetProduct(id)
+	product, erro := h.service.GetAllSkus(id)
 	if erro != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("invalid id", http.StatusBadRequest, nil))
-		return
+		switch erro.Error() {
+		case "short id":
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(dto.Response("invalid id", http.StatusBadRequest, nil))
+			return
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusBadRequest, nil))
+			return
+		}
 	}
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, product))

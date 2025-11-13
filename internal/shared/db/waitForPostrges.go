@@ -34,5 +34,5 @@ func WaitForPostgres(dsn string, timeout time.Duration) error {
 		}
 		lastErr = pingErr
 	}
-	return fmt.Errorf("postgres не поднялся за %s: %w", timeout, lastErr)
+	return fmt.Errorf("postgres did not rise for %s: %w", timeout, lastErr)
 }

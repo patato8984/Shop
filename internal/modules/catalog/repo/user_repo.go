@@ -2,6 +2,7 @@ package repo
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/patato8984/Shop/internal/modules/catalog/model"
@@ -30,7 +31,18 @@ func (r CatalogRepo) GetAll() ([]model.Product, error) {
 	}
 	return products, nil
 }
-func (r CatalogRepo) GetProduct(id int) (model.Product, error) {
+func (r CatalogRepo) GetSkus(id int) (model.SKU, error) {
+	var skus model.SKU
+	err := r.db.QueryRow("SELECT id, products_id, storage, colour, price, stock FROM skus WHERE id = $id", id).Scan(&skus.Id, &skus.Product_id, &skus.Storage, &skus.Colour, &skus.Price, &skus.Stock)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return skus, errors.New("skus not found")
+		}
+		return skus, fmt.Errorf("db error: %w", err)
+	}
+	return skus, nil
+}
+func (r CatalogRepo) GetAllSkus(id int) (model.Product, error) {
 	rows, err := r.db.Query("SELECT p.id, p.name, s.id AS id, s.products_id, s.storage, s.colour, s.price, s.stock FROM products p JOIN skus s ON p.id = s.products_id WHERE p.id = $1", id)
 	var product model.Product
 	if err != nil {

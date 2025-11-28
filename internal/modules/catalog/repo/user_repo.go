@@ -1,4 +1,4 @@
-package repo
+package catalog_repo
 
 import (
 	"database/sql"
@@ -16,7 +16,7 @@ func NewCatalogRepo(db *sql.DB) *CatalogRepo {
 	return &CatalogRepo{db: db}
 }
 func (r CatalogRepo) GetAll() ([]model.Product, error) {
-	rows, err := r.db.Query("SELECT id, name FROM products")
+	rows, err := r.db.Query("SELECT id, name FROM products WHERE delete_at IS nil")
 	if err != nil {
 		return []model.Product{}, fmt.Errorf("db error: %w", err)
 	}
@@ -33,7 +33,7 @@ func (r CatalogRepo) GetAll() ([]model.Product, error) {
 }
 func (r CatalogRepo) GetSkus(id int) (model.SKU, error) {
 	var skus model.SKU
-	err := r.db.QueryRow("SELECT id, products_id, storage, colour, price, stock FROM skus WHERE id = $id", id).Scan(&skus.Id, &skus.Product_id, &skus.Storage, &skus.Colour, &skus.Price, &skus.Stock)
+	err := r.db.QueryRow("SELECT id, products_id, storage, colour, price, stock FROM skus WHERE id = $id AND deleted_at IS NILL", id).Scan(&skus.Id, &skus.Product_id, &skus.Storage, &skus.Colour, &skus.Price, &skus.Stock)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return skus, errors.New("skus not found")

@@ -1,4 +1,4 @@
-package handler
+package catalog_handler
 
 import (
 	"encoding/json"
@@ -6,15 +6,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/patato8984/Shop/internal/modules/catalog/usescase"
+	catalog_usescase "github.com/patato8984/Shop/internal/modules/catalog/usescase"
 	"github.com/patato8984/Shop/internal/shared/dto"
 )
 
 type CatalogHandler struct {
-	service *usescase.CatalogService
+	service *catalog_usescase.CatalogService
 }
 
-func NewCatalogHandler(service *usescase.CatalogService) *CatalogHandler {
+func NewCatalogHandler(service *catalog_usescase.CatalogService) *CatalogHandler {
 	return &CatalogHandler{service: service}
 }
 func (h CatalogHandler) GetAllProduct(w http.ResponseWriter, r http.Request) {

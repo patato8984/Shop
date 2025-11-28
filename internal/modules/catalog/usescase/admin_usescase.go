@@ -1,17 +1,17 @@
-package usescase
+package catalog_usescase
 
 import (
 	"errors"
 
 	"github.com/patato8984/Shop/internal/modules/catalog/model"
-	"github.com/patato8984/Shop/internal/modules/catalog/repo"
+	catalog_admin_repo "github.com/patato8984/Shop/internal/modules/catalog/repo"
 )
 
 type CatalogAdminServise struct {
-	repo *repo.CatalogAdminRepo
+	repo *catalog_admin_repo.CatalogAdminRepo
 }
 
-func NewCatalogAdminServise(repo *repo.CatalogAdminRepo) CatalogAdminServise {
+func NewCatalogAdminServise(repo *catalog_admin_repo.CatalogAdminRepo) CatalogAdminServise {
 	return CatalogAdminServise{repo: repo}
 }
 

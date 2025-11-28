@@ -1,12 +1,12 @@
-package usescase_user
+package auth_usescase
 
 import (
 	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/patato8984/Shop/internal/modules/user/model"
-	repo_user "github.com/patato8984/Shop/internal/modules/user/repo"
+	"github.com/patato8984/Shop/internal/modules/auth/model"
+	repo_user "github.com/patato8984/Shop/internal/modules/auth/repo"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -31,7 +31,7 @@ func (s *UserService) RegisterCase(user model.User) error {
 	if err != nil {
 		return err
 	}
-	if err = s.repo.RegisterRepo(user.Mail, user.Name, user.Nickname, string(heshPassword)); err != nil {
+	if err = s.repo.RegisterUser(user.Mail, user.Name, user.Nickname, string(heshPassword)); err != nil {
 		return err
 	}
 	return nil
@@ -51,6 +51,7 @@ func (s *UserService) GetToken(nickName, password string) (model.User, error) {
 	if err != nil {
 		return user, err
 	}
+	user.CreatedAt = users.CreatedAt
 	user.Nickname = nickName
 	user.Id = users.Id
 	user.Token = token

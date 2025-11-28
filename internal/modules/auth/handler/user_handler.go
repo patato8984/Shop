@@ -1,11 +1,11 @@
-package handler_user
+package auth_handler
 
 import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/patato8984/Shop/internal/modules/user/model"
-	usescase_user "github.com/patato8984/Shop/internal/modules/user/usescase"
+	"github.com/patato8984/Shop/internal/modules/auth/model"
+	usescase_user "github.com/patato8984/Shop/internal/modules/auth/usescase"
 	"github.com/patato8984/Shop/internal/shared/dto"
 )
 
@@ -65,5 +65,5 @@ func (h *UserHandler) Authentication(w http.ResponseWriter, r http.Request) {
 		}
 	}
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dto.Response("seccus", http.StatusOK, user))
+	json.NewEncoder(w).Encode(dto.Response("the user has been created", http.StatusOK, user))
 }

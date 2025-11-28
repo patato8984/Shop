@@ -1,17 +1,17 @@
-package usescase
+package catalog_usescase
 
 import (
 	"errors"
 
 	"github.com/patato8984/Shop/internal/modules/catalog/model"
-	"github.com/patato8984/Shop/internal/modules/catalog/repo"
+	catalog_repo "github.com/patato8984/Shop/internal/modules/catalog/repo"
 )
 
 type CatalogService struct {
-	repo repo.CatalogRepo
+	repo catalog_repo.CatalogRepo
 }
 
-func NewCatalogService(repo *repo.CatalogRepo) *CatalogService {
+func NewCatalogService(repo *catalog_repo.CatalogRepo) *CatalogService {
 	return &CatalogService{repo: *repo}
 }
 func (s CatalogService) GetAllProducts() ([]model.Product, error) {

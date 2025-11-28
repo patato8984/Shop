@@ -1,4 +1,4 @@
-package handler
+package catalog_handler
 
 import (
 	"encoding/json"
@@ -7,15 +7,15 @@ import (
 	"strings"
 
 	"github.com/patato8984/Shop/internal/modules/catalog/model"
-	"github.com/patato8984/Shop/internal/modules/catalog/usescase"
+	catalog_usescase "github.com/patato8984/Shop/internal/modules/catalog/usescase"
 	"github.com/patato8984/Shop/internal/shared/dto"
 )
 
 type CatalogAdminHandler struct {
-	service *usescase.CatalogAdminServise
+	service *catalog_usescase.CatalogAdminServise
 }
 
-func NewCatalogAdminHandler(service *usescase.CatalogAdminServise) CatalogAdminHandler {
+func NewCatalogAdminHandler(service *catalog_usescase.CatalogAdminServise) CatalogAdminHandler {
 	return CatalogAdminHandler{service: service}
 }
 func (h CatalogAdminHandler) CreateNewProduct(w http.ResponseWriter, r http.Request) {

@@ -1,4 +1,4 @@
-package repo
+package catalog_repo
 
 import (
 	"database/sql"
@@ -24,7 +24,7 @@ func (r CatalogAdminRepo) CreateOrSearchProduct(product string) (int, error) {
 }
 func (r CatalogAdminRepo) DelProduct(id int) (int, error) {
 	var deletedID int
-	err := r.db.QueryRow("DELETE FROM products WHERE id = $1 RETURNING id", id).Scan(&deletedID)
+	err := r.db.QueryRow("UPDATE products SET deleted_at = NEW() WHERE id = $1 RETURNING id", id).Scan(&deletedID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.New("product not found")
@@ -56,7 +56,7 @@ func (r CatalogAdminRepo) CreateSkus(id int, sku model.SKU) (model.Product, erro
 }
 func (r CatalogAdminRepo) AddStock(stock, id int) (model.SKU, error) {
 	var sku model.SKU
-	err := r.db.QueryRow("UPDATE skus SET stock = stock + $1 WHERE id = $2 RETURNING products_id, price, stock", stock, id).Scan(&sku.Product_id, &sku.Price, &sku.Stock)
+	err := r.db.QueryRow("UPDATE skus SET stock = stock + $1, appdate_at = NEW() WHERE products_id = $2 RETURNING products_id, price, stock", stock, id).Scan(&sku.Product_id, &sku.Price, &sku.Stock)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return sku, errors.New("skus not found")
@@ -68,7 +68,7 @@ func (r CatalogAdminRepo) AddStock(stock, id int) (model.SKU, error) {
 }
 func (r CatalogAdminRepo) DelSkus(id int) (int, error) {
 	var deletedID int
-	err := r.db.QueryRow("DELETE FROM skus WHERE id = $1 RETURNING id", id).Scan(&deletedID)
+	err := r.db.QueryRow("UPDATE skus SET deleted_at = NEW() WHERE id = $1 RETURNING id", id).Scan(&deletedID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return 0, errors.New("skus not found")

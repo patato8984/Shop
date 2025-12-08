@@ -63,3 +63,25 @@ func (r CatalogRepo) GetAllSkus(id int) (model.Product, error) {
 	}
 	return product, nil
 }
+func (r CatalogRepo) GetPrice(idSkus int) (float64, error) {
+	var price float64
+	err := r.db.QueryRow("SELECT price FROM skus WHERE id = $1", idSkus).Scan(&price)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("skus not faund")
+		}
+		return 0, fmt.Errorf("error db: %s", err)
+	}
+	return price, nil
+}
+func (r CatalogRepo) GetStock(idSkus int) (int, error) {
+	var stock int
+	err := r.db.QueryRow("SELECT stock FROM skus WHERE id = $1", idSkus).Scan(&stock)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, errors.New("skus not faund")
+		}
+		return 0, fmt.Errorf("error db: %s", err)
+	}
+	return stock, nil
+}

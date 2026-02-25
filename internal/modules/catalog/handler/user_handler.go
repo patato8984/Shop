@@ -1,13 +1,16 @@
 package catalog_handler
 
 import (
-	"encoding/json"
+	"context"
+	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 
+	catalog_model "github.com/patato8984/Shop/internal/modules/catalog/model"
 	catalog_usescase "github.com/patato8984/Shop/internal/modules/catalog/usescase"
 	"github.com/patato8984/Shop/internal/shared/dto"
+	"github.com/patato8984/Shop/internal/shared/logger"
+	"go.uber.org/zap"
 )
 
 type CatalogHandler struct {
@@ -17,68 +20,79 @@ type CatalogHandler struct {
 func NewCatalogHandler(service *catalog_usescase.CatalogService) *CatalogHandler {
 	return &CatalogHandler{service: service}
 }
-func (h CatalogHandler) GetAllProduct(w http.ResponseWriter, r http.Request) {
-	allproduct, err := h.service.GetAllProducts()
-	w.Header().Set("Content-Type", "application/json")
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(allproduct)
+
+var userErrorMapping = map[error]int{
+	catalog_model.ErrJson:            http.StatusBadRequest,
+	catalog_model.ErrUrl:             http.StatusBadRequest,
+	catalog_model.ErrProductNotFound: http.StatusNotFound,
+	catalog_model.ErrShortID:         http.StatusBadRequest,
+	catalog_model.ErrSkuNotFound:     http.StatusNotFound,
+	catalog_model.ErrShortName:       http.StatusBadRequest,
 }
-func (h CatalogHandler) GetSkus(w http.ResponseWriter, r http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/skus/")
-	id, err := strconv.Atoi(idStr)
-	w.Header().Set("Content-Type", "application/json")
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+
+func (h CatalogHandler) ResponseUserError(w http.ResponseWriter, err error, ctx context.Context, data any) {
+	log := logger.FromContext(ctx)
+	if errors.Is(err, context.DeadlineExceeded) {
+		log.Error("server timeout",
+			zap.Error(err),
+		)
+		dto.Response(w, "timeout", http.StatusGatewayTimeout, nil)
 		return
 	}
-	skus, err := h.service.GetSkus(id)
-	if err != nil {
-		switch err.Error() {
-		case "skus not fund":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
-			return
-		case "short id":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
-			return
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusBadRequest, nil))
+	if errors.Is(err, context.Canceled) {
+		return
+	}
+	for target, status := range userErrorMapping {
+		if errors.Is(err, target) {
+			log.Warn("BadRequest",
+				zap.Error(err),
+			)
+			dto.Response(w, target.Error(), status, data)
 			return
 		}
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, skus))
+	log.Error("server error",
+		zap.Error(err),
+	)
+	dto.Response(w, "server error", http.StatusInternalServerError, nil)
 }
-func (h CatalogHandler) GetAllSkus(w http.ResponseWriter, r http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/")
-	id, err := strconv.Atoi(idStr)
-	w.Header().Set("Content-Type", "application/json")
+func (h CatalogHandler) GetAllProduct(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	allproduct, err := h.service.GetAllProducts(ctx)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		h.ResponseUserError(w, err, ctx, nil)
 		return
 	}
-	product, erro := h.service.GetAllSkus(id)
-	if erro != nil {
-		switch erro.Error() {
-		case "short id":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(dto.Response("invalid id", http.StatusBadRequest, nil))
-			return
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusBadRequest, nil))
-			return
-		}
+	dto.Response(w, "success", http.StatusOK, allproduct)
+}
+func (h CatalogHandler) GetAllSkus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.ResponseUserError(w, catalog_model.ErrUrl, ctx, nil)
+		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, product))
+	product, err := h.service.GetAllSkus(ctx, id)
+	if err != nil {
+		h.ResponseUserError(w, err, ctx, nil)
+		return
+	}
+	dto.Response(w, "success", http.StatusOK, product)
+}
+
+func (h CatalogHandler) GetSkus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.ResponseUserError(w, catalog_model.ErrUrl, ctx, nil)
+		return
+	}
+	skus, err := h.service.GetSkus(ctx, id)
+	if err != nil {
+		h.ResponseUserError(w, err, ctx, nil)
+		return
+	}
+	dto.Response(w, "success", http.StatusOK, skus)
 }

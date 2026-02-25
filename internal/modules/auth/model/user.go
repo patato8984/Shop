@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type User = struct {
 	Id        int       `json:"id,omitempty"`
@@ -19,3 +22,12 @@ type ResponseAuthentication = struct {
 	Role         string
 	CreatedAt    time.Time
 }
+
+var (
+	ErrCheckPassword           = errors.New("incorrect password")
+	ErrShortPasswordOrNickname = errors.New("short password or nickname")
+	ErrUserNotFound            = errors.New("user not found")
+	ErrNickNameBusy            = errors.New("nickname busy")
+	ErrMailBusy                = errors.New("mail busy")
+	ErrJson                    = errors.New("error json")
+)

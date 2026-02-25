@@ -1,7 +1,8 @@
 CREATE TABLE cart (
     id SERIAL PRIMARY KEY,
-    id_user INT REFERENCES users(id) NOT NULL ON DELETE CASCADE,
-    created_at TIMESTAMPTZ DEFAULT NEW(),
+    id_user INT REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    deleted_at TIMESTAMPTZ,
     update_at TIMESTAMPTZ,
     status TEXT DEFAULT 'active'
 );

@@ -1,156 +1,163 @@
 package catalog_handler
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/patato8984/Shop/internal/modules/catalog/model"
+	catalog_model "github.com/patato8984/Shop/internal/modules/catalog/model"
 	catalog_usescase "github.com/patato8984/Shop/internal/modules/catalog/usescase"
 	"github.com/patato8984/Shop/internal/shared/dto"
+	"github.com/patato8984/Shop/internal/shared/logger"
+	"go.uber.org/zap"
 )
 
 type CatalogAdminHandler struct {
-	service *catalog_usescase.CatalogAdminServise
+	service *catalog_usescase.CatalogAdminService
 }
 
-func NewCatalogAdminHandler(service *catalog_usescase.CatalogAdminServise) CatalogAdminHandler {
+func NewCatalogAdminHandler(service *catalog_usescase.CatalogAdminService) CatalogAdminHandler {
 	return CatalogAdminHandler{service: service}
 }
-func (h CatalogAdminHandler) CreateNewProduct(w http.ResponseWriter, r http.Request) {
+
+var adminErrorMapping = map[error]int{
+	catalog_model.ErrJson:            http.StatusBadRequest,
+	catalog_model.ErrUrl:             http.StatusBadRequest,
+	catalog_model.ErrProductNotFound: http.StatusNotFound,
+	catalog_model.ErrShortID:         http.StatusBadRequest,
+	catalog_model.ErrSkuNotFound:     http.StatusNotFound,
+	catalog_model.ErrShortName:       http.StatusBadRequest,
+}
+
+func (h CatalogAdminHandler) ResponseAdminError(w http.ResponseWriter, err error, ctx context.Context, data any) {
+	log := logger.FromContext(ctx)
+	if errors.Is(err, context.DeadlineExceeded) {
+		log.Error("server timeout",
+			zap.Error(err),
+		)
+		dto.Response(w, "timeout", http.StatusGatewayTimeout, nil)
+		return
+	}
+	if errors.Is(err, context.Canceled) {
+		return
+	}
+	for target, status := range adminErrorMapping {
+		if errors.Is(err, target) {
+			log.Warn("BadRequest",
+				zap.Error(err),
+			)
+			dto.Response(w, target.Error(), status, data)
+			return
+		}
+	}
+	log.Error("server error",
+		zap.Error(err),
+	)
+	dto.Response(w, "server error", http.StatusInternalServerError, nil)
+}
+func (h CatalogAdminHandler) CreateNewProduct(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var nameProduct string
-	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewDecoder(r.Body).Decode(&nameProduct); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("error json", http.StatusBadRequest, nil))
+		h.ResponseAdminError(w, catalog_model.ErrJson, ctx, nil)
 		return
 	}
-	product, err := h.service.CreateNewProduct(nameProduct)
+	product, err := h.service.CreateNewProduct(ctx, nameProduct)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(dto.Response("error server", http.StatusBadRequest, nil))
+		h.ResponseAdminError(w, err, ctx, nil)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, product))
+	dto.Response(w, "success", http.StatusOK, product)
 }
-func (h CatalogAdminHandler) DelProduct(w http.ResponseWriter, r http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/")
+func (h CatalogAdminHandler) DelProduct(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
-	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		h.ResponseAdminError(w, catalog_model.ErrUrl, ctx, nil)
 		return
 	}
-	deletedID, err := h.service.DelProduct(id)
+	deletedID, err := h.service.DelProduct(ctx, id)
 	if err != nil {
-		switch err.Error() {
-		case "product not found":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
-			return
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(dto.Response("server error", http.StatusInternalServerError, nil))
-		}
+		h.ResponseAdminError(w, err, ctx, nil)
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dto.Response("succes delete", http.StatusOK, deletedID))
+	dto.Response(w, "success delete", http.StatusOK, deletedID)
 }
-
-func (h CatalogAdminHandler) CreateNewSkus(w http.ResponseWriter, r http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/")
+func (h CatalogAdminHandler) UpdatePrice(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
-	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		h.ResponseAdminError(w, catalog_model.ErrUrl, ctx, nil)
 		return
 	}
-	var skus model.SKU
+	var price catalog_model.SKU
+	if err := json.NewDecoder(r.Body).Decode(&price); err != nil {
+		h.ResponseAdminError(w, catalog_model.ErrJson, ctx, nil)
+		return
+	}
+	newPrice, err := h.service.UpdatePriceToSkus(ctx, id, price.Price)
+	if err != nil {
+		h.ResponseAdminError(w, err, ctx, nil)
+		return
+	}
+	dto.Response(w, "success update", http.StatusOK, newPrice)
+}
+func (h CatalogAdminHandler) CreateNewSkus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	idStr := r.PathValue("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		h.ResponseAdminError(w, catalog_model.ErrUrl, ctx, nil)
+		return
+	}
+	var skus catalog_model.SKU
 	if err := json.NewDecoder(r.Body).Decode(&skus); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("error json", http.StatusBadRequest, nil))
+		h.ResponseAdminError(w, catalog_model.ErrJson, ctx, nil)
 		return
 	}
-	data, errors := h.service.CreateNewSkus(id, skus)
+	data, errors := h.service.CreateNewSkus(ctx, id, skus)
 	if errors != nil {
-		switch errors.Error() {
-		case "product not found":
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(dto.Response(errors.Error(), http.StatusNotFound, nil))
-			return
-		case "short id":
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(dto.Response(errors.Error(), http.StatusNotFound, nil))
-			return
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
-			return
-		}
+		h.ResponseAdminError(w, err, ctx, nil)
+		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, data))
+	dto.Response(w, "success", http.StatusOK, data)
 }
 
-func (h CatalogAdminHandler) AddStockToSkus(w http.ResponseWriter, r http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/skus/")
+func (h CatalogAdminHandler) AddStockToSkus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
-	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		h.ResponseAdminError(w, catalog_model.ErrUrl, ctx, nil)
 		return
 	}
 	var stock int
 	if err := json.NewDecoder(r.Body).Decode(&stock); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("error json", http.StatusBadRequest, nil))
+		h.ResponseAdminError(w, catalog_model.ErrJson, ctx, nil)
 		return
 	}
-	sku, err := h.service.AddStockToSkus(stock, id)
+	sku, err := h.service.AddStockToSkus(ctx, stock, id)
 	if err != nil {
-		switch err.Error() {
-		case "sku not found":
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusNotFound, nil))
-			return
-		case "short id":
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusNotFound, nil))
-			return
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(dto.Response("error server", http.StatusInternalServerError, nil))
-		}
+		h.ResponseAdminError(w, err, ctx, nil)
+		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dto.Response("success", http.StatusOK, sku))
+	dto.Response(w, "success", http.StatusOK, sku)
 }
-func (h CatalogAdminHandler) DelSkus(w http.ResponseWriter, r http.Request) {
-	idStr := strings.TrimPrefix(r.URL.Path, "/catalog/skus/")
+func (h CatalogAdminHandler) DelSkus(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	idStr := r.PathValue("id")
 	id, err := strconv.Atoi(idStr)
-	w.Header().Set("Content-Type", "application/json")
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(dto.Response("incorrect URL", http.StatusBadRequest, nil))
+		h.ResponseAdminError(w, catalog_model.ErrUrl, ctx, nil)
 		return
 	}
-	deletedID, err := h.service.DelSkus(id)
+	deletedID, err := h.service.DelSkus(ctx, id)
 	if err != nil {
-		switch err.Error() {
-		case "product not found":
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(dto.Response(err.Error(), http.StatusBadRequest, nil))
-			return
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(dto.Response("server error", http.StatusInternalServerError, nil))
-		}
+		h.ResponseAdminError(w, err, ctx, nil)
+		return
 	}
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(dto.Response("succes delete", http.StatusOK, deletedID))
+	dto.Response(w, "success delete", http.StatusOK, deletedID)
 }

@@ -1,0 +1,5 @@
+port: ":8080"
+dsn: "postgresql://user:password@db:5432/shop?sslmode=disable"
+REDIS_ADDR: "redis:6379"
+REDIS_PASSWORD: "mysecretpassword"
+BROKER: "kafka:29092"

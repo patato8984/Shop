@@ -1,0 +1,7 @@
+secret.env
+apiAdmins.yml
+loki-data
+prometheus-data
+grafana-data
+node_modules
+.git

@@ -1,9 +1,9 @@
-package db
+package postgres
 
 import "database/sql"
 
-func NewPostgesConnection(connStr string) (*sql.DB, error) {
-	db, err := sql.Open("posgres", connStr)
+func NewPostgresConnection(connStr string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err
 	}

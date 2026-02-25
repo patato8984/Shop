@@ -1,0 +1,25 @@
+{
+    "cSpell.words": [
+        "patato",
+        "Skus",
+        "allproduct",
+        "usescase",
+        "segmentio",
+        "sslmode",
+        "Hesh",
+        "ctxkey",
+        "errgroup",
+        "colour",
+        "addres",
+        "statuse",
+        "mapstructure",
+        "idSkuse",
+        "sqlclosecheck",
+        "gocyclo",
+        "gocognit",
+        "staticcheck",
+        "errcheck",
+        "govet",
+        "gocritic"
+    ]
+}
